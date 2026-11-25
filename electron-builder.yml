@@ -1,0 +1,25 @@
+appId: local.drift.app
+productName: drift
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**
+  - resources/**
+  - package.json
+asar: true
+# koffi loads a native .node file, which cannot be read from inside the asar.
+asarUnpack:
+  - node_modules/koffi/**
+  - node_modules/@koromix/**
+win:
+  icon: resources/icon.ico
+  target:
+    - portable
+  # Not signed: this is a personal app. Editing stays on so the exe carries
+  # the drift name and icon (Task Manager reads them from the exe).
+  signAndEditExecutable: true
+  signExecutable: false
+  forceCodeSigning: false
+portable:
+  artifactName: drift-${version}-portable.exe
