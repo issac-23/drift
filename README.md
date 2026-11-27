@@ -96,3 +96,11 @@ To point the connector at a different file (for trying it out), set `DRIFT_DATA_
 ## For developers
 
 See `AGENTS.md` for the layout and the checks (`npm run typecheck`, `npm test`, `npm run test:e2e`, `npm run build`).
+
+## Sync with tend
+
+drift can sync its tasks with the tend PWA, so the list is editable from your phone while this laptop is off. Create `sync.json` next to your data file (`%USERPROFILE%\.drift\sync.json` by default):
+
+    { "url": "https://your-tend.vercel.app", "token": "the DRIFT_SYNC_TOKEN you set in Vercel" }
+
+Or set `DRIFT_SYNC_URL` and `DRIFT_SYNC_TOKEN`. drift then pulls from tend every minute and pushes about a second after any local change, including tasks Claude adds through the connector. Conflicts resolve by newest `updatedAt`; deletes sync as soft-delete tombstones. With no config, nothing changes. Server setup and push reminders are described in the tend README.

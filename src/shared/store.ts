@@ -351,3 +351,30 @@ export function deleteTask(id: string): boolean {
     return true
   })
 }
+
+/**
+ * Merge tasks from another device: a remote task wins only when its updatedAt is newer than the
+ * local copy (last write wins); unknown ids are added. Returns how many tasks changed.
+ */
+export function mergeTasks(remote: unknown[]): number {
+  const valid: Task[] = []
+  for (const entry of remote) {
+    const parsed = TaskSchema.safeParse(normaliseTask(entry))
+    if (parsed.success) valid.push(parsed.data)
+  }
+  if (valid.length === 0) return 0
+  return mutate((tasks) => {
+    let changed = 0
+    for (const r of valid) {
+      const i = tasks.findIndex((t) => t.id === r.id)
+      if (i === -1) {
+        tasks.push(r)
+        changed++
+      } else if (tasks[i].updatedAt < r.updatedAt) {
+        tasks[i] = r
+        changed++
+      }
+    }
+    return changed
+  })
+}

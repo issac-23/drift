@@ -52,3 +52,7 @@ export const RENDERER_RELOAD_DELAY_MS = 1000
 export const FULLSCREEN_POLL_MS = 1000
 // Slack (physical px) when deciding a window covers its whole monitor.
 export const FULLSCREEN_TOLERANCE_PX = 2
+
+// Cloud sync with tend: how often to poll, and how long to wait after a local edit before pushing.
+export const SYNC_POLL_MS = 60_000
+export const SYNC_PUSH_DELAY_MS = 1500

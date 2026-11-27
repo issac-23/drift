@@ -9,6 +9,8 @@ import {
   RENDERER_MAX_RELOADS,
   RENDERER_RELOAD_DELAY_MS,
   READ_RETRY_DELAYS_MS,
+  SYNC_POLL_MS,
+  SYNC_PUSH_DELAY_MS,
   WATCH_DEBOUNCE_MS,
   WINDOW_HEIGHT,
   WINDOW_WIDTH,
@@ -21,6 +23,7 @@ import type { Category, Status, Task } from '../shared/types'
 import { readSettings, writeSettings } from './settings'
 import { startFullscreenWatcher } from './fullscreen'
 import { watchDataFile } from './watcher'
+import { readSyncConfig, syncOnce } from '../shared/sync'
 
 const dataFile = getDataFile()
 const settingsFile = path.join(path.dirname(dataFile), 'settings.json')
@@ -371,7 +374,35 @@ if (!app.requestSingleInstanceLock()) {
     createWindow()
     createTray()
     startWatchingFullscreen()
-    watchDataFile(dataFile, WATCH_DEBOUNCE_MS, () => pushTasks())
+    let syncing = false
+    let syncAgain = false
+    const runSync = async (): Promise<void> => {
+      const cfg = readSyncConfig()
+      if (!cfg) return
+      if (syncing) {
+        syncAgain = true
+        return
+      }
+      syncing = true
+      try {
+        const res = await syncOnce(cfg)
+        if (!res.ok) console.warn(`drift sync: ${res.error}`)
+      } finally {
+        syncing = false
+        if (syncAgain) {
+          syncAgain = false
+          setTimeout(() => void runSync(), SYNC_PUSH_DELAY_MS)
+        }
+      }
+    }
+    let syncTimer: NodeJS.Timeout | undefined
+    watchDataFile(dataFile, WATCH_DEBOUNCE_MS, () => {
+      pushTasks()
+      clearTimeout(syncTimer)
+      syncTimer = setTimeout(() => void runSync(), SYNC_PUSH_DELAY_MS)
+    })
+    void runSync()
+    setInterval(() => void runSync(), SYNC_POLL_MS)
 
     const onDisplayChange = (): void => relayout()
     screen.on('display-metrics-changed', onDisplayChange)
